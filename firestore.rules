@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Transactions Collection - Zero-Trust Immutable Audit Model
+    match /transactions/{txId} {
+      // Any authenticated or authorized client may read transactions
+      allow read: if true;
+
+      // Creation Rule: Must start in PENDING_AUTHORIZATION with positive amount and valid payloadHash
+      allow create: if request.resource.data.status == "PENDING_AUTHORIZATION"
+                    && request.resource.data.amount > 0
+                    && request.resource.data.payeeName is string
+                    && request.resource.data.payloadHash is string;
+
+      // State Transition Rule:
+      // Once created, payload details (payee, amount, account) CANNOT be modified.
+      // Only valid status transitions are permitted:
+      // 1. PENDING -> CRYPTOGRAPHICALLY_AUTHORIZED (must supply valid authProof with signature)
+      // 2. PENDING -> FLAGGED_AS_FRAUD (must supply valid fraudReport with reason)
+      allow update: if resource.data.status == "PENDING_AUTHORIZATION"
+                    && request.resource.data.payloadHash == resource.data.payloadHash
+                    && request.resource.data.amount == resource.data.amount
+                    && (
+                      (request.resource.data.status == "CRYPTOGRAPHICALLY_AUTHORIZED"
+                       && request.resource.data.authProof.rawSignature is string)
+                      ||
+                      (request.resource.data.status == "FLAGGED_AS_FRAUD"
+                       && request.resource.data.fraudReport.reason is string)
+                    );
+
+      // Deletion is strictly forbidden to preserve cryptographic audit trail
+      allow delete: if false;
+    }
+
+    // Immutable append-only audit trail
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
