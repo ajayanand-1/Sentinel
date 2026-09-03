@@ -1,4 +1,10 @@
-# SENTINEL // Zero-Trust Out-of-Band (OOB) Transaction Authorization Engine
+<div align="center">
+
+# 🛡️ SENTINEL
+### Zero-Trust Out-of-Band (OOB) Transaction Authorization Engine
+**Defending Enterprise Treasury from Generative Deepfakes, Voice Clones & Executive Impersonation Fraud**
+
+<br />
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -7,27 +13,39 @@
 [![Firebase Firestore](https://img.shields.io/badge/Database-Cloud%20Firestore-orange?style=for-the-badge&logo=firebase)](https://firebase.google.com/)
 [![PWA Standalone](https://img.shields.io/badge/Client-PWA%20Mobile%20Enclave-purple?style=for-the-badge&logo=pwa)](https://web.dev/progressive-web-apps/)
 
----
+<br />
 
-## 1. Executive Abstract & Threat Model
+> **The Core Security Axiom:**  
+> *The channel through which an instruction is communicated can never be the channel through which transaction intent is authorized.*
 
-Modern financial wire fraud and corporate treasury manipulation have evolved past brute-force credential stuffing. The emergence of **Generative Synthetic Media**—specifically real-time deepfake video puppetry (latent diffusion model driven video call injection) and acoustic neural voice cloning (text-to-speech models fine-tuned on sub-three-second executive audio samples)—has rendered conversational communication channels completely untrustworthy for authorization.
-
-Traditional financial controls rely on conversational verification:
-1. *Call-back confirmation* (vulnerable to PBX spoofing and AI voice cloning).
-2. *Email confirmation* (vulnerable to Business Email Compromise [BEC] and session token hijacking).
-3. *Internal messaging approvals via Slack/Teams* (vulnerable to SSO credential compromise).
-4. *Executive video check-ins* (vulnerable to real-time generative video avatar puppetry).
-
-**Sentinel** eliminates this attack surface by enforcing a strict **Zero-Trust Axiom**:
-
-> **The channel through which an instruction is communicated can never be the channel through which transaction intent is authorized.**
-
-Sentinel decouples transaction creation from cryptographic authorization. High-value wire transfers created on a dedicated desktop finance console cannot execute until the exact canonical byte digest of the transfer is cryptographically signed by the physical executive's hardware-isolated Secure Enclave (Apple Secure Enclave, Android StrongBox, or TPM 2.0) via the **W3C WebAuthn / FIDO2 API**.
+</div>
 
 ---
 
-## 2. Formal Cryptographic Specification
+## ⚡ Executive Briefing for Hackathon Judges
+
+| Evaluation Pillar | How Sentinel Solves It |
+| :--- | :--- |
+| **The Urgent Problem** | AI deepfakes and acoustic voice clones trick finance staff into transferring hundreds of millions. In 2024, a multinational firm lost $25M when a finance worker joined a video call with a completely deepfaked CFO and executive team. |
+| **The Core Innovation** | **Total separation of conversational identity from cryptographic authorization intent.** Conversational channels (video calls, phone, chat, email) are treated as untrusted. Authorization requires a physical biometric hardware signature (**W3C WebAuthn / FIDO2**) over a canonical SHA-256 transaction digest. |
+| **Hardware-Rooted Security** | Approval is signed inside the executive's physical **Secure Enclave / TPM** (Apple TouchID/FaceID, Windows Hello, Android StrongBox). Private keys never touch memory, networks, or servers. |
+| **Instant Threat Neutralization** | If an executive did not instruct a wire transfer, tapping **"Flag as Fraud"** immediately locks the transaction in Cloud Firestore and triggers a real-time containment alarm on the staff treasury desk. |
+| **Zero-Friction Evaluation** | Built with a **Dual-Mode Engine**: runs full Cloud Firestore when configured, or auto-switches to real-time cross-tab `BroadcastChannel` synchronization so judges can test the full round-trip immediately without setting up cloud keys. |
+
+---
+
+## 📊 Threat Vector Defense Matrix
+
+| Threat Vector | Traditional Enterprise Defense | Why It Fails Against AI | Sentinel Zero-Trust OOB Defense |
+| :--- | :--- | :--- | :--- |
+| **Real-time Deepfake Video Call** | Face-to-face video confirmation on Zoom / Teams | Modern diffusion models inject real-time video puppetry mimicking facial expressions and voice tone. | **Immune.** Video identity grants zero signing authority. The executive's biometric hardware must sign the exact payload hash out-of-band. |
+| **Neural Voice Clone Phone Call** | Voice verification / phone callback | Neural text-to-speech clones executive speech patterns from a 3-second audio sample with 99.4% acoustic fidelity. | **Immune.** Voice commands cannot execute wires. A physical passkey prompt is required on the executive's registered device. |
+| **Business Email Compromise (BEC)** | Email thread confirmation & dual-staff signoff | Attacker compromises executive email via OAuth token theft or session cookie hijacking. | **Immune.** Emails carry zero authorization privilege. Transactions are cryptographically invalid without hardware enclave assertion. |
+| **Internal Slack / Teams Impersonation** | SSO-authenticated enterprise direct message | Session tokens stolen via infostealer malware or compromised IdP credentials. | **Immune.** SSO credentials do not possess the private cryptographic key held inside the executive's physical platform enclave. |
+
+---
+
+## 🔐 Cryptographic Architecture & Mathematical Specification
 
 ```
                           TRANSACTION CREATION
@@ -42,14 +60,14 @@ Sentinel decouples transaction creation from cryptographic authorization. High-v
                      Alphabetically Ordered Keys
                                    |
                                    v
-          H = SHA-256( JCS( Payload ) )  ---> 32-byte Hex Digest
+          H_tx = SHA-256( JCS( PayloadTuple ) )  ---> 32-byte Hex Digest
                                    |
                                    |  (Dispatched out-of-band to Cloud Firestore)
                                    v
                    EXECUTIVE WEBAUTHN / FIDO2 SIGNING
      +-------------------------------------------------------------+
-     |  Mobile PWA extracts H and injects as challenge:            |
-     |  challenge = H (32-byte Uint8Array)                         |
+     |  Mobile PWA extracts H_tx and injects as challenge:         |
+     |  challenge = H_tx (32-byte Uint8Array)                      |
      |  navigator.credentials.get({                                |
      |    publicKey: { challenge, userVerification: "required" }   |
      |  })                                                         |
@@ -67,53 +85,52 @@ Sentinel decouples transaction creation from cryptographic authorization. High-v
      |  Immutable Proof Attached to Firestore:                     |
      |  - rawSignature (Base64URL)                                 |
      |  - authenticatorData (Base64URL) with UP & UV flags set     |
-     |  - clientDataJSON (Base64URL) containing challenge = H      |
+     |  - clientDataJSON (Base64URL) containing challenge = H_tx   |
      |  - Status mutated to: CRYPTOGRAPHICALLY_AUTHORIZED          |
      +-------------------------------------------------------------+
 ```
 
-### 2.1. Canonical Payload Digest Formulation
-To ensure that key ordering or whitespace discrepancies never yield differing cryptographic hashes across disparate runtimes, the payload is serialized strictly adhering to the JSON Canonicalization Scheme (RFC 8785):
+### 1. Deterministic Payload Digest Formulation
+To ensure that key ordering or whitespace differences across languages and devices never alter the cryptographic digest, the transaction payload is serialized using the **JSON Canonicalization Scheme (RFC 8785)**:
 
 ```typescript
-// Deterministic Canonical Payload Tuple
+// Canonical Payload Tuple
 PayloadTuple = {
-  payeeName: string,
-  targetAccount: TargetAccountDetails,
   amount: number,
   currency: string,
+  initiator: { department: string, email: string, name: string },
   justification: string,
-  urgency: "STANDARD" | "HIGH" | "CRITICAL",
+  payeeName: string,
   reportedChannel: CommunicationChannel,
-  initiator: { name: string, email: string, department: string }
+  targetAccount: {
+    accountNumber: string,
+    bankName: string,
+    country: string,
+    routingNumber: string,
+    swiftBic?: string
+  },
+  urgency: "STANDARD" | "HIGH" | "CRITICAL"
 };
 
-// Canonical Digest Formulation
+// Cryptographic Challenge Digest
 H_tx = SHA-256( JCS( PayloadTuple ) );
 ```
 
-Where:
-* **`PayloadTuple`** represents the deterministic dictionary of wire transfer instructions.
-* **`JCS`** is the recursive alphanumeric key-sorting serializer implemented in `src/lib/crypto.ts`.
-* **`H_tx`** is the invariant 256-bit digest formatted as a 64-character lowercase hexadecimal string.
-
-### 2.2. WebAuthn Hardware Assertion
-When the approving executive activates the biometric authorization trigger:
-1. The client converts `H_tx` into an `ArrayBuffer` of length 32.
-2. The browser invokes `navigator.credentials.get({ publicKey: { challenge: H_bytes, ... } })`.
-3. The platform authenticator prompts for physical biometric attestation (Apple TouchID/FaceID, Windows Hello, or Android BiometricPrompt).
-4. Upon biometric success, the platform private key (`k_priv` on NIST P-256 / secp256r1) computes an ECDSA signature `sigma = (r, s)` over:
-   ```text
-   MessageToSign = AuthenticatorData || SHA-256( ClientDataJSON )
-   ```
-5. The resulting cryptographic assertion contains:
-   * **`rawSignature`**: The DER-encoded ECDSA signature `(r, s)`.
-   * **`authenticatorData`**: 37+ bytes containing the RP ID hash, flags byte (`bit 0 = UP [User Present]`, `bit 2 = UV [User Verified]`), and signature counter.
-   * **`clientDataJSON`**: The JSON dictionary containing the base64url-encoded challenge `H_tx` and origin binding.
+### 2. Hardware Enclave Biometric Assertion
+When the authorizing executive initiates the biometric passkey flow:
+1. The client runtime translates `H_tx` into a 32-byte binary array.
+2. The browser invokes `navigator.credentials.get({ publicKey: { challenge: H_bytes, userVerification: "required" } })`.
+3. The platform authenticator activates the biometric sensor (FaceID, TouchID, Windows Hello).
+4. Upon physical biometric verification, the platform private key ($k_{\text{priv}}$, NIST Curve P-256 / secp256r1) computes an ECDSA signature $\sigma = (r, s)$ over:
+   $$\text{MessageToSign} = \text{AuthenticatorData} \mathbin{\Vert} \text{SHA-256}(\text{ClientDataJSON})$$
+5. The hardware assertion attaches:
+   * **`rawSignature`**: The DER-encoded cryptographic signature $(r, s)$.
+   * **`authenticatorData`**: Binary metadata confirming the User Present (`UP`) and User Verified (`UV`) flags.
+   * **`clientDataJSON`**: Cryptographic binding containing `H_tx` and origin context.
 
 ---
 
-## 3. System Architecture & End-to-End Data Flow
+## 🔄 End-to-End System Protocol Flow
 
 ```mermaid
 sequenceDiagram
@@ -143,111 +160,34 @@ sequenceDiagram
     else Scenario B: Valid Transaction
         Exec->>PWA: Taps Biometric Passkey Sign
         PWA->>Enclave: WebAuthn Assertion Request
-        Exec->>Enclave: Biometric Verification (TouchID or FaceID)
-        Enclave-->>PWA: Cryptographic Assertion (Signature and AuthData)
+        Exec->>Enclave: Biometric Verification
+        Enclave-->>PWA: Cryptographic Assertion
         PWA->>FS: Updates status to CRYPTOGRAPHICALLY_AUTHORIZED
-        FS-->>Desk: Ledger turns Emerald; unlocks Audit Certificate
+        FS-->>Desk: Ledger turns Emerald and unlocks Audit Certificate
     end
 ```
 
 ---
 
-## 4. Component Topology & Deep Technical Breakdown
+## 🖥️ Component Architecture
 
 ### Component 1: Staff Initiator Desktop Console (`/staff`)
-* **File Reference:** [`src/components/staff/StaffDashboard.tsx`](src/components/staff/StaffDashboard.tsx)
-* **Real-Time KPI Telemetry:**
-  * Total Authorized Volume (USD)
-  * Pending Authorization Queue (pulsing amber indicator)
-  * Cryptographically Authorized Count (FIDO2 certified)
-  * Fraud Attacks Intercepted (monetary value and threat counts)
-* **Wire Initiation Modal (`NewTransactionModal.tsx`):**
-  * Collects Payee entity, Receiving bank name, Account number / IBAN, Routing / SWIFT-BIC code, Destination jurisdiction.
-  * Ingress Channel Tagging: `DEEPFAKE_VIDEO_CALL`, `VOICE_CLONE_PHONE`, `COMPROMISED_EMAIL`, `URGENT_MESSAGING_SLACK_WHATSAPP`, or `ROUTINE_INVOICE_PROCEDURE`.
-  * Real-time reactive canonical SHA-256 calculation displayed before submission.
-* **Cryptographic Audit Certificate Inspector (`AuditCertificateModal.tsx`):**
-  * Displays the raw DER signature, Base64URL `authenticatorData`, `clientDataJSON`, and signer public key identity.
-  * Features a **"Verify Mathematical Integrity"** button that re-executes the canonical hash from current memory and verifies challenge equality live in the browser.
-* **Out-of-Band Mobile QR Bridge (`MobileBridgeModal.tsx`):**
-  * Uses vector QR encoding (`qrcode.react`) to project the deep-link URL (`/approver?tx=<id>`) for instant smartphone camera scanning.
+* **Live KPI Telemetry:** Real-time metrics tracking Total Authorized Volume, Active Pending Queue, FIDO2-Certified Transfers, and Total Prevented Fraud Value.
+* **Transaction Ingress Tagging:** Explicitly logs the ingress channel of the instruction (`Deepfake Video Call`, `Voice Clone Phone Call`, `Compromised Email`, `Urgent DM`, `Standard PO`).
+* **Cryptographic Certificate Drawer:** Allows finance officers to inspect the DER signature, Base64URL `authenticatorData`, and signer identity, with a live **"Verify Mathematical Integrity"** validator.
+* **Mobile QR Bridge:** Displays a dynamic vector QR code (`qrcode.react`) so executives or judges can scan with a real smartphone to test the mobile flow.
 
-### Component 2: Executive Approver PWA (`/approver`)
-* **File Reference:** [`src/components/approver/ApproverPWA.tsx`](src/components/approver/ApproverPWA.tsx)
-* **Mobile-First Progressive Web App Shell:**
-  * Configured with `src/app/manifest.ts` for standalone mobile installation.
-  * Tactile ergonomics optimized for one-handed mobile review.
-* **Tamper-Evident Transaction Container:**
-  * Prominent transfer volume display and payee verification card.
-  * **Out-of-Band Threat Context Warning:** Explicitly notifies the executive of the channel through which staff allegedly received the order:
-    > *"⚠️ STAFF ADVISORY: Staff logged that this transfer request was received via Deepfake Video Meeting. If you did not instruct this transfer in an authenticated protocol, tap 'Flag as Fraud' immediately."*
-* **"Reject & Flag as Fraud" (Red Action Trigger):**
-  * One-tap escalation opening an incident categorization sheet.
-  * Updates Firestore transaction status to `FLAGGED_AS_FRAUD`.
-  * Renders permanent crimson audit stamp.
-* **"Biometric Passkey Sign & Authorize" (Emerald Action Trigger):**
-  * Invokes the WebAuthn API directly via `signTransactionWithWebAuthn()`.
-  * Enforces `userVerification: "required"` to ensure biometric authentication is not bypassed by passive tokens.
-  * Writes the resulting hardware cryptographic assertion into Firestore.
+### Component 2: Executive Approver Mobile PWA (`/approver`)
+* **Smartphone-Optimized PWA:** Configured via `src/app/manifest.ts` for native standalone mobile installation.
+* **Tamper-Evident Review Container:** Highlights the transfer amount, destination bank, and an **Out-of-Band Advisory Banner** alerting the executive to the reported communication origin.
+* **"Reject & Flag as Fraud" (Red Action):** One-tap incident escalation that commits a `FraudReport` to Firestore and immediately locks the transaction across the enterprise.
+* **"Biometric Passkey Sign & Authorize" (Emerald Action):** Direct integration with the WebAuthn API enforcing biometric user verification.
 
 ---
 
-## 5. Database Architecture & Firestore Security Rules
+## 🛡️ Firestore Immutability Security Rules (`firestore.rules`)
 
-### 5.1. Data Models (`src/types/transaction.ts`)
-
-```typescript
-export interface TargetAccountDetails {
-  accountNumber: string;
-  routingNumber: string;
-  bankName: string;
-  swiftBic?: string;
-  country: string;
-}
-
-export interface WebAuthnProof {
-  credentialId: string;
-  rawSignature: string;          // Base64URL DER-encoded signature
-  authenticatorData: string;     // Base64URL authenticator data
-  clientDataJSON: string;        // Base64URL client data JSON
-  signatureAlgorithm: string;    // "ES256 (NIST P-256 + ECDSA)"
-  userVerified: boolean;
-  userPresent: boolean;
-  approvedAt: string;            // ISO 8601 UTC
-  approverEmail: string;
-  authenticatorType?: string;    // "Hardware Platform Authenticator"
-  challengeSigned: string;       // SHA-256 hex digest
-}
-
-export interface FraudReport {
-  flaggedAt: string;
-  flaggedBy: string;
-  reason: string;
-  details?: string;
-  suspectedChannel: string;
-}
-
-export interface TransactionPayload {
-  id: string;
-  payeeName: string;
-  targetAccount: TargetAccountDetails;
-  amount: number;
-  currency: string;
-  justification: string;
-  urgency: "STANDARD" | "HIGH" | "CRITICAL";
-  reportedChannel: CommunicationChannel;
-  initiator: { name: string; email: string; department: string };
-  payloadHash: string;           // SHA-256 digest
-  status: "PENDING_AUTHORIZATION" | "CRYPTOGRAPHICALLY_AUTHORIZED" | "FLAGGED_AS_FRAUD";
-  createdAt: string;
-  updatedAt: string;
-  authProof?: WebAuthnProof;
-  fraudReport?: FraudReport;
-}
-```
-
-### 5.2. Formal Security Rules (`firestore.rules`)
-
-The system enforces mathematical immutability at the database layer. No client or compromised staff member can modify transaction parameters once initiated:
+Transactions in Sentinel are mathematically immutable. Once created, no user or compromised staff member can alter wire parameters:
 
 ```cel
 rules_version = '2';
@@ -257,7 +197,7 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read: if true;
 
-      // Creation: must enter pending state with valid positive amount and canonical hash
+      // Creation: must start in PENDING state with positive amount and canonical hash
       allow create: if request.resource.data.status == "PENDING_AUTHORIZATION"
                     && request.resource.data.amount > 0
                     && request.resource.data.payeeName is string
@@ -266,8 +206,8 @@ service cloud.firestore {
       // State Transition Invariance:
       // Once created, payload details (payee, amount, account) CANNOT be modified.
       // Only valid status transitions are permitted:
-      // 1. PENDING -> CRYPTOGRAPHICALLY_AUTHORIZED (strictly requires authProof with signature)
-      // 2. PENDING -> FLAGGED_AS_FRAUD (strictly requires fraudReport with reason)
+      // 1. PENDING -> CRYPTOGRAPHICALLY_AUTHORIZED (requires authProof with rawSignature)
+      // 2. PENDING -> FLAGGED_AS_FRAUD (requires fraudReport with reason)
       allow update: if resource.data.status == "PENDING_AUTHORIZATION"
                     && request.resource.data.payloadHash == resource.data.payloadHash
                     && request.resource.data.amount == resource.data.amount
@@ -292,18 +232,57 @@ service cloud.firestore {
 }
 ```
 
-### 5.3. Dual-Mode Reactive Synchronization Engine
-The application implements an automatic dual-mode synchronization engine in [`src/lib/firebase.ts`](src/lib/firebase.ts):
-1. **Live Cloud Firestore Mode:** When Firebase environment variables or custom configuration are provided, transactions synchronize across the internet in real time via Firestore `onSnapshot`.
-2. **Local Enclave Mode (Zero-Config Testing):** When running locally without cloud credentials, an internal synchronization layer powered by `window.localStorage` and the `BroadcastChannel("sentinel_oob_sync")` API mirrors state transitions across browser tabs and companion mobile windows instantly with zero latency.
-3. **Runtime Config Modal:** Users can toggle or paste live Firebase API keys directly into the UI at runtime without requiring a project rebuild.
+---
+
+## 🚀 Judge Quick-Start & Live Demo Instructions
+
+### 1. Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/ajayanand-1/Sentinel.git
+cd Sentinel
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Open **`http://localhost:3000`** in your browser.
 
 ---
 
-## 6. Directory Layout
+### 2. The 60-Second Hackathon Demo Walkthrough
+
+1. **Observe Dual Console:** By default, Sentinel loads in **Dual View** (Desktop Staff Console on the left, Executive Mobile PWA on the right).
+2. **Initiate an Impersonation Scenario:**
+   * On the Staff Console, click **"Initiate New Transaction"**.
+   * Click **"+ Auto-Fill Deepfake Threat Scenario"** to simulate an urgent $340,000 wire requested during a deepfake executive video call.
+   * Notice the real-time calculation of the canonical SHA-256 hash.
+   * Click **"Dispatch for Biometric Approval"**.
+3. **Approve via Biometrics:**
+   * On the right pane (Mobile PWA), observe the new transaction appear instantaneously via real-time sync.
+   * Tap **"Biometric Passkey Sign & Authorize"**.
+   * Your browser will trigger your device passkey (TouchID, FaceID, Windows Hello, or PIN).
+   * Upon authorization, the transaction turns **Emerald Green** across both consoles.
+4. **Verify Cryptographic Proof:**
+   * In the Staff table, click the certificate icon (📄) next to the authorized transfer.
+   * Click **"Verify Hash & Signature"** to watch the browser mathematically recompute the SHA-256 hash and verify challenge equality.
+5. **Test Threat Interception (Fraud Flagging):**
+   * Select a pending transaction and tap **"Reject & Flag as Fraud"**.
+   * Select **"Never Authorized / Synthetic Voice or Video Impersonation"**.
+   * Notice the entire system locks into a red threat alert, halting the transfer permanently.
+6. **Physical Smartphone Testing:**
+   * Click the QR code icon (📱) on any transaction row and scan the code with your mobile phone camera to test on actual mobile hardware.
+
+---
+
+## 🏛️ Repository Topology
 
 ```
-oob-portal/
+Sentinel/
 ├── firestore.rules               # Firestore security rules enforcing immutability
 ├── next.config.ts                # Next.js 16 configuration
 ├── package.json                  # Dependencies: firebase, lucide-react, qrcode.react
@@ -339,55 +318,9 @@ oob-portal/
 
 ---
 
-## 7. Local Setup & Execution Guide
+<div align="center">
 
-### Prerequisites
-* Node.js v18.0.0 or higher (v20+ recommended)
-* Modern web browser with WebAuthn / FIDO2 support (Chrome, Safari, Edge, Firefox)
+**Built for the Zero-Trust Defense of Corporate Treasury**  
+*Distributed under the Apache 2.0 License.*
 
-### Installation & Launch
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/ajayanand-1/Sentinel.git
-cd Sentinel
-
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
-npm run dev
-```
-
-The portal will initialize at **`http://localhost:3000`**.
-
-### Testing the Zero-Trust Protocol
-
-1. **Dual Console Testing (Default View):**
-   * Navigate to `http://localhost:3000`. The default view is **Dual View**, presenting the Staff Console on the left and the Executive Mobile PWA on the right.
-2. **Initiate an Out-of-Band Wire Transfer:**
-   * On the Staff Console, click **"Initiate New Transaction"**.
-   * Click **"+ Auto-Fill Deepfake Threat Scenario"** to simulate an urgent request received during a compromised Zoom video call.
-   * Observe the live pre-computation of the canonical SHA-256 hash.
-   * Click **"Dispatch for Biometric Approval"**.
-3. **Execute Hardware Biometric Signing:**
-   * On the Executive Mobile PWA (right pane), view the incoming pending transfer.
-   * Tap **"Biometric Passkey Sign & Authorize"**.
-   * Your operating system will prompt for your device passkey (TouchID, FaceID, Windows Hello, or PIN).
-   * Upon verification, the transaction updates across all connected interfaces to **`Authorized (FIDO2)`**.
-4. **Inspect & Verify Mathematical Integrity:**
-   * In the Staff table, click the certificate icon (📄) next to the authorized transaction.
-   * Click **"Verify Hash & Signature"** to execute real-time mathematical validation confirming that the signed challenge strictly matches the recomputed payload digest.
-5. **Simulate Threat Neutralization (Fraud Rejection):**
-   * Select a pending transaction and tap **"Reject & Flag as Fraud"**.
-   * Choose a threat reason (e.g., *"Synthetic Voice or Video Impersonation"*).
-   * Confirm rejection: the transfer is permanently revoked, status turns crimson, and a real-time security alert triggers across the system.
-6. **Cross-Device Mobile Testing:**
-   * Click the QR code icon (📱) on any transaction row.
-   * Scan the QR code with your mobile smartphone connected to the same local network to test the native mobile PWA with your smartphone's biometric hardware.
-
----
-
-## 8. License
-
-Distributed under the Apache 2.0 License. See `LICENSE` for more information.
+</div>
