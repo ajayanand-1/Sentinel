@@ -18,15 +18,23 @@ export default function HomePage() {
     message: string;
   } | null>(null);
 
-  // Subscribe to real-time transactions stream (Firestore or Local Sync)
+  const transactionsRef = React.useRef<TransactionPayload[]>([]);
+
+  // Update ref whenever transactions change
+  useEffect(() => {
+    transactionsRef.current = transactions;
+  }, [transactions]);
+
+  // Subscribe to real-time transactions stream (Firestore or Local Sync) once on mount
   useEffect(() => {
     let initialLoad = true;
     const unsubscribe = subscribeToTransactions((latest) => {
+      const prev = transactionsRef.current;
       // If not initial load, detect changes for audio/banner alert
-      if (!initialLoad && latest.length > 0 && transactions.length > 0) {
+      if (!initialLoad && latest.length > 0 && prev.length > 0) {
         // Check if any transaction changed status
         for (const tx of latest) {
-          const old = transactions.find((t) => t.id === tx.id);
+          const old = prev.find((t) => t.id === tx.id);
           if (old && old.status !== tx.status) {
             if (tx.status === "CRYPTOGRAPHICALLY_AUTHORIZED") {
               setBannerAlert({
@@ -51,7 +59,7 @@ export default function HomePage() {
     });
 
     return () => unsubscribe();
-  }, [transactions]);
+  }, []);
 
   // Auto-dismiss banner alert
   useEffect(() => {

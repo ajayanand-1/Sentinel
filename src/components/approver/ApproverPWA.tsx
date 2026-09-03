@@ -54,15 +54,21 @@ export const ApproverPWA: React.FC<ApproverPWAProps> = ({
   // Pick transaction: from prop, or first pending, or first in list
   useEffect(() => {
     if (initialTransactionId && transactions.some((t) => t.id === initialTransactionId)) {
-      setSelectedTxId(initialTransactionId);
+      if (selectedTxId !== initialTransactionId) {
+        setSelectedTxId(initialTransactionId);
+      }
       return;
     }
 
-    const pending = transactions.find((t) => t.status === "PENDING_AUTHORIZATION");
-    if (pending) {
-      setSelectedTxId(pending.id);
-    } else if (transactions.length > 0 && !selectedTxId) {
-      setSelectedTxId(transactions[0].id);
+    // Only update if current selectedTxId is not selected or no longer exists
+    const currentStillExists = transactions.some((t) => t.id === selectedTxId);
+    if (!selectedTxId || !currentStillExists) {
+      const pending = transactions.find((t) => t.status === "PENDING_AUTHORIZATION");
+      if (pending) {
+        setSelectedTxId(pending.id);
+      } else if (transactions.length > 0) {
+        setSelectedTxId(transactions[0].id);
+      }
     }
   }, [initialTransactionId, transactions, selectedTxId]);
 

@@ -73,28 +73,43 @@ Sentinel decouples transaction creation from cryptographic authorization. High-v
 ```
 
 ### 2.1. Canonical Payload Digest Formulation
-To ensure that key ordering or whitespace discrepancies never yield differing cryptographic hashes across disparate runtimes, the payload is serialized strictly adhering to the JSON Canonicalization Scheme:
+To ensure that key ordering or whitespace discrepancies never yield differing cryptographic hashes across disparate runtimes, the payload is serialized strictly adhering to the JSON Canonicalization Scheme (RFC 8785):
 
-$$\mathcal{T} = \{ \text{payeeName}, \text{targetAccount}, \text{amount}, \text{currency}, \text{justification}, \text{urgency}, \text{reportedChannel}, \text{initiator} \}$$
+```typescript
+// Deterministic Canonical Payload Tuple
+PayloadTuple = {
+  payeeName: string,
+  targetAccount: TargetAccountDetails,
+  amount: number,
+  currency: string,
+  justification: string,
+  urgency: "STANDARD" | "HIGH" | "CRITICAL",
+  reportedChannel: CommunicationChannel,
+  initiator: { name: string, email: string, department: string }
+};
 
-$$\mathcal{H}_{\text{tx}} = \text{SHA-256}(\text{JCS}(\mathcal{T}))$$
+// Canonical Digest Formulation
+H_tx = SHA-256( JCS( PayloadTuple ) );
+```
 
 Where:
-* $\mathcal{T}$ represents the deterministic tuple of wire transfer instructions.
-* $\text{JCS}$ is the recursive alphanumeric key-sorting serializer implemented in `src/lib/crypto.ts`.
-* $\mathcal{H}_{\text{tx}}$ is the invariant 256-bit digest formatted as a 64-character lowercase hexadecimal string.
+* **`PayloadTuple`** represents the deterministic dictionary of wire transfer instructions.
+* **`JCS`** is the recursive alphanumeric key-sorting serializer implemented in `src/lib/crypto.ts`.
+* **`H_tx`** is the invariant 256-bit digest formatted as a 64-character lowercase hexadecimal string.
 
 ### 2.2. WebAuthn Hardware Assertion
 When the approving executive activates the biometric authorization trigger:
-1. The client converts $\mathcal{H}_{\text{tx}}$ into an `ArrayBuffer` of length 32.
+1. The client converts `H_tx` into an `ArrayBuffer` of length 32.
 2. The browser invokes `navigator.credentials.get({ publicKey: { challenge: H_bytes, ... } })`.
 3. The platform authenticator prompts for physical biometric attestation (Apple TouchID/FaceID, Windows Hello, or Android BiometricPrompt).
-4. Upon biometric success, the platform private key ($k_{\text{priv}} \in \mathbb{F}_q$, NIST P-256 / secp256r1) computes an ECDSA signature $\sigma = (r, s)$ over:
-   $$\mathcal{M} = \text{authData} \mathbin{\Vert} \text{SHA-256}(\text{clientDataJSON})$$
+4. Upon biometric success, the platform private key (`k_priv` on NIST P-256 / secp256r1) computes an ECDSA signature `sigma = (r, s)` over:
+   ```text
+   MessageToSign = AuthenticatorData || SHA-256( ClientDataJSON )
+   ```
 5. The resulting cryptographic assertion contains:
-   * **`rawSignature`**: The DER-encoded ECDSA signature $(r, s)$.
-   * **`authenticatorData`**: 37+ bytes containing the RP ID hash, flags byte ($\text{bit } 0 = \text{UP (User Present)}$, $\text{bit } 2 = \text{UV (User Verified)}$), and signature counter.
-   * **`clientDataJSON`**: The JSON dictionary containing the base64url-encoded challenge $\mathcal{H}_{\text{tx}}$ and origin binding.
+   * **`rawSignature`**: The DER-encoded ECDSA signature `(r, s)`.
+   * **`authenticatorData`**: 37+ bytes containing the RP ID hash, flags byte (`bit 0 = UP [User Present]`, `bit 2 = UV [User Verified]`), and signature counter.
+   * **`clientDataJSON`**: The JSON dictionary containing the base64url-encoded challenge `H_tx` and origin binding.
 
 ---
 
@@ -103,36 +118,35 @@ When the approving executive activates the biometric authorization trigger:
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Staff as Treasury / Finance Staff
-    participant Desk as Staff Initiator Desktop Console
-    participant FS as Cloud Firestore (Immutable Ledger)
-    participant PWA as Executive Mobile PWA (Out-of-Band)
+    actor Staff as Treasury Staff
+    participant Desk as Staff Console
+    participant FS as Cloud Firestore
+    participant PWA as Executive Mobile PWA
     actor Exec as Authorizing Executive
-    participant Enclave as Hardware Secure Enclave (FIDO2)
+    participant Enclave as Hardware Secure Enclave
 
-    Note over Staff,Desk: Phase 1: Out-of-Band Initiation
-    Staff->>Desk: Inputs Payee, Account/IBAN, Amount, Urgency & Ingress Context
-    Desk->>Desk: Computes Canonical SHA-256 Digest (H_tx)
-    Desk->>FS: Commits Transaction (status: "PENDING_AUTHORIZATION", payloadHash: H_tx)
-    FS-->>Desk: Real-time listener confirms write; generates QR Bridge
+    Note over Staff,Desk: Phase 1: Initiation
+    Staff->>Desk: Inputs Payee, Account, Amount and Context
+    Desk->>Desk: Computes Canonical SHA-256 Digest
+    Desk->>FS: Commits Transaction (status: PENDING_AUTHORIZATION)
+    FS-->>Desk: Real-time listener confirms write
 
     Note over PWA,Exec: Phase 2: Out-of-Band Verification
     FS-->>PWA: Real-time update delivers pending transaction
     Exec->>PWA: Opens Mobile Review Card
-    PWA->>Exec: Displays Beneficiary, Amount, Origin Warning & H_tx fingerprint
+    PWA->>Exec: Displays Beneficiary, Amount and Origin Warning
 
-    alt Scenario A: Impersonation Recognized (Rejection Path)
-        Exec->>PWA: Taps "Reject & Flag as Fraud"
-        PWA->>Exec: Prompts Threat Classification (e.g., Deepfake Audio / Video)
-        PWA->>FS: Updates status: "FLAGGED_AS_FRAUD" + attaches FraudReport
-        FS-->>Desk: Real-time alert triggers audible/visual breach beacon; transfer locked
-    else Scenario B: Valid Transaction (Cryptographic Passkey Approval)
-        Exec->>PWA: Taps "Biometric Passkey Sign & Authorize"
-        PWA->>Enclave: navigator.credentials.get({ challenge: H_tx, userVerification: "required" })
-        Exec->>Enclave: Biometric Verification (TouchID / FaceID)
-        Enclave-->>PWA: Cryptographic Assertion (rawSignature, authData, clientDataJSON)
-        PWA->>FS: Updates status: "CRYPTOGRAPHICALLY_AUTHORIZED" + WebAuthnProof
-        FS-->>Desk: Ledger turns verified Emerald; unlocks Mathematical Certificate
+    alt Scenario A: Impersonation Recognized
+        Exec->>PWA: Taps Reject and Flag as Fraud
+        PWA->>FS: Updates status to FLAGGED_AS_FRAUD
+        FS-->>Desk: Real-time alert triggers breach beacon
+    else Scenario B: Valid Transaction
+        Exec->>PWA: Taps Biometric Passkey Sign
+        PWA->>Enclave: WebAuthn Assertion Request
+        Exec->>Enclave: Biometric Verification (TouchID or FaceID)
+        Enclave-->>PWA: Cryptographic Assertion (Signature and AuthData)
+        PWA->>FS: Updates status to CRYPTOGRAPHICALLY_AUTHORIZED
+        FS-->>Desk: Ledger turns Emerald; unlocks Audit Certificate
     end
 ```
 
