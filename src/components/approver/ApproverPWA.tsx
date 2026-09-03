@@ -239,7 +239,7 @@ export const ApproverPWA: React.FC<ApproverPWAProps> = ({
             <p className="text-[11px] text-slate-300">
               Signed by <span className="font-semibold text-emerald-400">{currentTx.authProof?.approverEmail}</span> via Secure Enclave ({currentTx.authProof?.signatureAlgorithm}).
             </p>
-            <div className="pt-1 text-[10px] text-slate-400 font-mono">
+            <div className="pt-1 text-[10px] text-slate-400 font-mono" suppressHydrationWarning>
               Timestamp: {currentTx.authProof ? new Date(currentTx.authProof.approvedAt).toLocaleTimeString() : ""}
             </div>
           </div>

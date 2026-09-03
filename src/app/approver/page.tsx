@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TransactionPayload } from "@/types/transaction";
 import { subscribeToTransactions } from "@/lib/firebase";
+import { INITIAL_TRANSACTIONS } from "@/lib/demo-data";
 import { ApproverPWA } from "@/components/approver/ApproverPWA";
 import { ArrowLeft, Smartphone, ShieldCheck } from "lucide-react";
 
@@ -11,7 +12,7 @@ function ApproverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const txId = searchParams.get("tx");
-  const [transactions, setTransactions] = useState<TransactionPayload[]>([]);
+  const [transactions, setTransactions] = useState<TransactionPayload[]>(INITIAL_TRANSACTIONS);
 
   useEffect(() => {
     const unsubscribe = subscribeToTransactions(setTransactions);

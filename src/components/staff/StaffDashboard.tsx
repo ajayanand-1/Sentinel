@@ -317,7 +317,7 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                         <div className="font-mono font-bold text-slate-200">
                           {tx.id}
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
+                        <div className="text-[10px] text-slate-400 mt-0.5" suppressHydrationWarning>
                           {new Date(tx.createdAt).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",

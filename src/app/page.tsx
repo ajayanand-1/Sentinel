@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { TransactionPayload } from "@/types/transaction";
 import { subscribeToTransactions } from "@/lib/firebase";
+import { INITIAL_TRANSACTIONS } from "@/lib/demo-data";
 import { Navbar, ActiveView } from "@/components/Navbar";
 import { StaffDashboard } from "@/components/staff/StaffDashboard";
 import { ApproverPWA } from "@/components/approver/ApproverPWA";
 import { ShieldCheck, ShieldAlert, Sparkles, Smartphone, Monitor } from "lucide-react";
 
 export default function HomePage() {
-  const [transactions, setTransactions] = useState<TransactionPayload[]>([]);
+  const [transactions, setTransactions] = useState<TransactionPayload[]>(INITIAL_TRANSACTIONS);
   const [activeView, setActiveView] = useState<ActiveView>("split");
   const [activeTxForApprover, setActiveTxForApprover] = useState<string | null>(null);
   const [bannerAlert, setBannerAlert] = useState<{

@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { TransactionPayload } from "@/types/transaction";
 import { subscribeToTransactions } from "@/lib/firebase";
+import { INITIAL_TRANSACTIONS } from "@/lib/demo-data";
 import { Navbar } from "@/components/Navbar";
 import { StaffDashboard } from "@/components/staff/StaffDashboard";
 
 export default function StaffPage() {
   const router = useRouter();
-  const [transactions, setTransactions] = useState<TransactionPayload[]>([]);
+  const [transactions, setTransactions] = useState<TransactionPayload[]>(INITIAL_TRANSACTIONS);
 
   useEffect(() => {
     const unsubscribe = subscribeToTransactions(setTransactions);
